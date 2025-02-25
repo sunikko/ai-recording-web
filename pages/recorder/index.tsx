@@ -4,8 +4,9 @@ import { Stream } from "stream";
 
 const Recorder = () => {
   const [state, setState] = useState<"recording" | "paused" | null>(null);
-  const [toastVisible, setToastVisible] = useState(true);
+  const [toastVisible, setToastVisible] = useState(false);
   const [time, setTime] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -17,10 +18,26 @@ const Recorder = () => {
     }, 1000);
   }, []);
 
+  const stopTimer = useCallback(() => {
+    if (timerRef.current != null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
   const onStartRecord = useCallback(() => {
     startTimer();
     setState("recording");
   }, [startTimer]);
+
+  const onStopRecord = useCallback(
+    ({ url }: { url: string }) => {
+      setAudioUrl(url);
+      stopTimer();
+      setState(null);
+    },
+    [stopTimer]
+  );
 
   const record = useCallback(() => {
     window.navigator.mediaDevices
@@ -36,15 +53,35 @@ const Recorder = () => {
         mediaRecorder.ondataavailable = (event) => {
           chunksRef.current.push(event.data);
         };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunksRef.current, {
+            type: chunksRef.current[0].type,
+          });
+          chunksRef.current = [];
+          const url = URL.createObjectURL(blob);
+          onStopRecord({ url });
+          stream.getAudioTracks().forEach((track) => track.stop());
+        };
+        mediaRecorder.start();
       });
+  }, [onStartRecord, onStopRecord]);
+
+  const recordStop = useCallback(() => {
+    if (mediaRecorderRef.current != null) {
+      mediaRecorderRef.current.stop();
+    }
   }, []);
 
   const onPressRecord = useCallback(() => {
     record();
   }, [record]);
 
+  const onPressSave = useCallback(() => {
+    recordStop();
+  }, [recordStop]);
+
   return (
-    <div className="h-screen bg-white flex flex-col">
+    <div className="h-screen  bg-[#F6F6F9] flex flex-col">
       <Header title="Recording" />
       <div className="flex flex-1 flex-col items-center pt-[211px]">
         {state === "recording" ? (
@@ -80,7 +117,7 @@ const Recorder = () => {
               pause
             </span>
             <span className="ml-[4px] text-[15px] text-white font-[600]">
-              일시 정지
+              Pause
             </span>
           </button>
         )}
@@ -89,14 +126,20 @@ const Recorder = () => {
             className={`${
               state === "paused" ? "mt-[42px]" : "mt-[16px]"
             } bg-[#09CC7F] rounded-[27px] px-[42px] py-[16px] items-center flex`}
+            onClick={onPressSave}
           >
             <span className="material-icons text-white !text-[20px]">
               check
             </span>
             <span className="ml-[4px] text-[15px] text-white font-[600]">
-              저장 하기
+              Save
             </span>
           </button>
+        )}
+        {audioUrl != null && (
+          <audio controls>
+            <source src={audioUrl} />
+          </audio>
         )}
         {toastVisible && (
           <div className="absolute bottom-[21px] flex border-[1.5px] border-[#09CC7F] w-[358px] py-[13px] px-[17px] rounded-[6px] bg-[#F9FEFF]">
