@@ -1,9 +1,48 @@
 import Header from "@/components/Header";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { Stream } from "stream";
 
 const Recorder = () => {
   const [state, setState] = useState<"recording" | "paused" | null>(null);
   const [toastVisible, setToastVisible] = useState(true);
+  const [time, setTime] = useState(0);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startTimer = useCallback(() => {
+    timerRef.current = setInterval(() => {
+      setTime((prev) => prev + 1);
+    }, 1000);
+  }, []);
+
+  const onStartRecord = useCallback(() => {
+    startTimer();
+    setState("recording");
+  }, [startTimer]);
+
+  const record = useCallback(() => {
+    window.navigator.mediaDevices
+      .getUserMedia({ audio: true, video: false })
+      .then((stream) => {
+        const mimeType = "audio/webm";
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.onstart = () => {
+          onStartRecord();
+        };
+        mediaRecorder.ondataavailable = (event) => {
+          chunksRef.current.push(event.data);
+        };
+      });
+  }, []);
+
+  const onPressRecord = useCallback(() => {
+    record();
+  }, [record]);
+
   return (
     <div className="h-screen bg-white flex flex-col">
       <Header title="Recording" />
@@ -17,7 +56,10 @@ const Recorder = () => {
             <span className="material-icons text-white text-[70px]">pause</span>
           </button>
         ) : (
-          <button className="w-[120px] h-[120px] rounded-[80px] bg-[#1A1A1A]">
+          <button
+            className="w-[120px] h-[120px] rounded-[80px] bg-[#1A1A1A]"
+            onClick={onPressRecord}
+          >
             <span className="material-icons text-[#09CC7F] text-[70px]">
               mic
             </span>
