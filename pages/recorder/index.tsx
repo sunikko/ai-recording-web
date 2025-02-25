@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import { formatTime } from "@/modules/Util";
 import { useCallback, useRef, useState } from "react";
 import { Stream } from "stream";
 
@@ -109,7 +110,7 @@ const Recorder = () => {
               : "text-[#AEAEB2]"
           }`}
         >
-          00:00
+          {formatTime(time)}
         </p>
         {state === "recording" && (
           <button className="mt-[42px] bg-[#1A1A1A] rounded-[27px] px-[42px] py-[16px] items-center flex">
