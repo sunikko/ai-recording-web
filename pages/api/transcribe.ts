@@ -1,7 +1,13 @@
 import formidable from "formidable";
 import { NextApiRequest, NextApiResponse } from "next";
+import OpenAI from "openai";
+import fs from "fs";
 
-const handler = (req: NextApiRequest, res: NextApiResponse) => {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "",
+});
+
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   //Input: audio input
   //openAI: audio -> text
   //output: text
@@ -19,6 +25,22 @@ const handler = (req: NextApiRequest, res: NextApiResponse) => {
     if (file == null) {
       console.error("File is undefined");
       return res.status(500).json({ erro: "Transcription failed" });
+    }
+    try {
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(file.filepath),
+        model: "whisper-1",
+        language: "en",
+        response_format: "verbose_json",
+      });
+
+      console.log("transcription", transcription);
+      return res.status(200).json({ transcription });
+    } catch (error: any) {
+      console.error("error", error);
+      return res.status(500).json({ error: error.message });
+    } finally {
+      fs.unlinkSync(file.filepath);
     }
   });
 };
