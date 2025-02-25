@@ -3,6 +3,7 @@ import { useState } from "react";
 
 const Recorder = () => {
   const [state, setState] = useState<"recording" | "paused" | null>(null);
+  const [toastVisible, setToastVisible] = useState(true);
   return (
     <div className="h-screen bg-white flex flex-col">
       <Header title="Recording" />
@@ -54,6 +55,16 @@ const Recorder = () => {
               저장 하기
             </span>
           </button>
+        )}
+        {toastVisible && (
+          <div className="absolute bottom-[21px] flex border-[1.5px] border-[#09CC7F] w-[358px] py-[13px] px-[17px] rounded-[6px] bg-[#F9FEFF]">
+            <span className="material-icons text-[#00DDA8] !text-[24px]">
+              check
+            </span>
+            <p className="ml-[7px] text-[15px] font-[600] text-[#4A4A4A]">
+              저장이 완료되었습니다.
+            </p>
+          </div>
         )}
       </div>
     </div>
