@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import { formatTime } from "@/modules/Util";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Stream } from "stream";
 
 const Recorder = () => {
@@ -27,17 +27,43 @@ const Recorder = () => {
   }, []);
 
   const onStartRecord = useCallback(() => {
+    setTime(0);
+    setAudioUrl(null);
     startTimer();
     setState("recording");
   }, [startTimer]);
+
+  const showToast = useCallback(() => {
+    setToastVisible(true);
+  }, []);
+
+  useEffect(() => {
+    if (toastVisible) {
+      const id = setTimeout(() => {
+        console.log("Toast 숨김 실행, ID:", id);
+        setToastVisible(false);
+      }, 2000);
+
+      console.log("setTimeout ID:", id, typeof id); // ✅ id의 타입 확인
+
+      return () => {
+        if (typeof id === "number") {
+          clearTimeout(id);
+        } else {
+          console.error("🚨 id!", id);
+        }
+      };
+    }
+  }, [toastVisible]);
 
   const onStopRecord = useCallback(
     ({ url }: { url: string }) => {
       setAudioUrl(url);
       stopTimer();
       setState(null);
+      showToast();
     },
-    [stopTimer]
+    [stopTimer, showToast]
   );
 
   const record = useCallback(() => {
@@ -61,15 +87,30 @@ const Recorder = () => {
           chunksRef.current = [];
           const url = URL.createObjectURL(blob);
           onStopRecord({ url });
-          stream.getAudioTracks().forEach((track) => track.stop());
+          if (stream) {
+            stream.getAudioTracks().forEach((track) => track.stop());
+          }
         };
         mediaRecorder.start();
       });
   }, [onStartRecord, onStopRecord]);
 
-  const recordStop = useCallback(() => {
+  const stop = useCallback(() => {
     if (mediaRecorderRef.current != null) {
       mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+  }, []);
+
+  const pause = useCallback(() => {
+    if (mediaRecorderRef.current != null) {
+      mediaRecorderRef.current.pause();
+    }
+  }, []);
+
+  const resume = useCallback(() => {
+    if (mediaRecorderRef.current != null) {
+      mediaRecorderRef.current.resume();
     }
   }, []);
 
@@ -78,19 +119,37 @@ const Recorder = () => {
   }, [record]);
 
   const onPressSave = useCallback(() => {
-    recordStop();
-  }, [recordStop]);
+    stop();
+  }, [stop]);
+
+  const onPressPause = useCallback(() => {
+    if (state === "recording") {
+      pause();
+      stopTimer();
+      setState("paused");
+    } else if (state === "paused") {
+      resume();
+      startTimer();
+      setState("recording");
+    }
+  }, [pause, resume, stopTimer, startTimer, state]);
 
   return (
     <div className="h-screen  bg-[#F6F6F9] flex flex-col">
       <Header title="Recording" />
       <div className="flex flex-1 flex-col items-center pt-[211px]">
         {state === "recording" ? (
-          <button className="w-[120px] h-[120px] rounded-[80px] bg-[#1A1A1A]">
+          <button
+            className="w-[120px] h-[120px] rounded-[80px] bg-[#1A1A1A]"
+            onClick={onPressPause}
+          >
             <span className="material-icons text-white text-[70px]">mic</span>
           </button>
         ) : state === "paused" ? (
-          <button className="w-[120px] h-[120px] rounded-[80px] bg-[#1A1A1A]">
+          <button
+            className="w-[120px] h-[120px] rounded-[80px] bg-[#1A1A1A]"
+            onClick={onPressPause}
+          >
             <span className="material-icons text-white text-[70px]">pause</span>
           </button>
         ) : (
@@ -113,7 +172,10 @@ const Recorder = () => {
           {formatTime(time)}
         </p>
         {state === "recording" && (
-          <button className="mt-[42px] bg-[#1A1A1A] rounded-[27px] px-[42px] py-[16px] items-center flex">
+          <button
+            className="mt-[42px] bg-[#1A1A1A] rounded-[27px] px-[42px] py-[16px] items-center flex"
+            onClick={onPressPause}
+          >
             <span className="material-icons text-white !text-[20px]">
               pause
             </span>
@@ -148,7 +210,7 @@ const Recorder = () => {
               check
             </span>
             <p className="ml-[7px] text-[15px] font-[600] text-[#4A4A4A]">
-              저장이 완료되었습니다.
+              Saved successfully.
             </p>
           </div>
         )}
