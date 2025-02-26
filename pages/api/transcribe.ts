@@ -3,8 +3,16 @@ import { NextApiRequest, NextApiResponse } from "next";
 import OpenAI from "openai";
 import fs from "fs";
 
+//off next.js parser
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
+  timeout: 60000,
 });
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {

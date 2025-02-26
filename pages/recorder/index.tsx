@@ -26,13 +26,6 @@ const Recorder = () => {
     }
   }, []);
 
-  const onStartRecord = useCallback(() => {
-    setTime(0);
-    setAudioUrl(null);
-    startTimer();
-    setState("recording");
-  }, [startTimer]);
-
   const showToast = useCallback(() => {
     setToastVisible(true);
   }, []);
@@ -56,14 +49,73 @@ const Recorder = () => {
     }
   }, [toastVisible]);
 
+  const transcribeAudio = useCallback(
+    async ({ url, ext }: { url: string; ext: string }) => {
+      console.log("transcribeAudio:", url, ext);
+      const response = await fetch(url);
+      const audioBlob = await response.blob();
+
+      if (!audioBlob || audioBlob.size === 0) {
+        console.error("No audio data available");
+        return;
+      }
+
+      //   const formData = new FormData();
+      //   formData.append("file", audioBlob, `recording${ext}`);
+
+      const formData = new FormData();
+
+      // Instead of this:
+      // formData.append('file', audioBlob);
+
+      // Do this:
+      if (audioBlob !== null) {
+        formData.append("file", audioBlob, "audio.webm");
+      } else {
+        formData.append("file", ""); // or omit this line to not send the field at all
+      }
+
+      // Add other necessary fields
+      formData.append("model", "whisper-1");
+      formData.append("language", "en");
+
+      try {
+        const transcriptionResponse = await fetch("/api/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Transcription failed");
+        }
+
+        const data = await transcriptionResponse.json();
+        console.log(data);
+      } catch (error) {
+        console.error("Error:", error);
+        // 에러 처리
+      }
+    },
+    []
+  );
+
+  const onStartRecord = useCallback(() => {
+    setTime(0);
+    setAudioUrl(null);
+    startTimer();
+    setState("recording");
+  }, [startTimer]);
+
   const onStopRecord = useCallback(
-    ({ url }: { url: string }) => {
+    ({ url, ext }: { url: string; ext: string }) => {
+      console.log("onStopRecord", url);
       setAudioUrl(url);
       stopTimer();
       setState(null);
       showToast();
+      transcribeAudio({ url, ext });
     },
-    [stopTimer, showToast]
+    [stopTimer, showToast, transcribeAudio]
   );
 
   const record = useCallback(() => {
@@ -86,7 +138,7 @@ const Recorder = () => {
           });
           chunksRef.current = [];
           const url = URL.createObjectURL(blob);
-          onStopRecord({ url });
+          onStopRecord({ url, ext: "webm" });
           if (stream) {
             stream.getAudioTracks().forEach((track) => track.stop());
           }
