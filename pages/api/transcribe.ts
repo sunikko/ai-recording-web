@@ -11,7 +11,9 @@ export const config = {
 };
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
+  apiKey:
+    "" ||
+    "",
   timeout: 60000,
 });
 

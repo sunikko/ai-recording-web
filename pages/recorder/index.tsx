@@ -8,6 +8,8 @@ const Recorder = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [time, setTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [transcription, setTranscription] = useState("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -59,23 +61,9 @@ const Recorder = () => {
         console.error("No audio data available");
         return;
       }
-
-      //   const formData = new FormData();
-      //   formData.append("file", audioBlob, `recording${ext}`);
-
       const formData = new FormData();
+      formData.append("file", audioBlob, `recording${ext}`);
 
-      // Instead of this:
-      // formData.append('file', audioBlob);
-
-      // Do this:
-      if (audioBlob !== null) {
-        formData.append("file", audioBlob, "audio.webm");
-      } else {
-        formData.append("file", ""); // or omit this line to not send the field at all
-      }
-
-      // Add other necessary fields
       formData.append("model", "whisper-1");
       formData.append("language", "en");
 
@@ -99,12 +87,37 @@ const Recorder = () => {
     []
   );
 
+  const webSpeachTranscribe = useCallback(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop(); // 기존 인스턴스 중지
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ko-KR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0].transcript)
+        .join("");
+      setTranscription(transcript);
+    };
+    recognitionRef.current = recognition; // 새로운 인스턴스 저장
+    recognition.start();
+  }, []);
+
   const onStartRecord = useCallback(() => {
     setTime(0);
     setAudioUrl(null);
+    setTranscription("");
     startTimer();
     setState("recording");
-  }, [startTimer]);
+    webSpeachTranscribe();
+  }, [startTimer, webSpeachTranscribe]);
 
   const onStopRecord = useCallback(
     ({ url, ext }: { url: string; ext: string }) => {
@@ -113,9 +126,17 @@ const Recorder = () => {
       stopTimer();
       setState(null);
       showToast();
-      transcribeAudio({ url, ext });
+      //transcribeAudio({ url, ext });
+
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setTranscription((prevTranscription) => {
+        console.log("transcription:", prevTranscription);
+        return prevTranscription; // 상태 유지
+      });
     },
-    [stopTimer, showToast, transcribeAudio]
+    [stopTimer, showToast]
   );
 
   const record = useCallback(() => {
