@@ -1,5 +1,7 @@
+import { useDatabase, dataScript } from "@/components/DataContext";
 import Header from "@/components/Header";
 import { formatTime } from "@/modules/Util";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stream } from "stream";
 
@@ -10,6 +12,7 @@ const Recorder = () => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [transcription, setTranscription] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const lastIdRef = useRef<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -87,6 +90,9 @@ const Recorder = () => {
     []
   );
 
+  const { create } = useDatabase();
+  const router = useRouter();
+
   const webSpeachTranscribe = useCallback(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -96,19 +102,56 @@ const Recorder = () => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = "ko-KR";
+    // recognition.lang = "ko-KR";
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript)
-        .join("");
-      setTranscription(transcript);
+    // recognition.onresult = (event) => {
+    //   const transcript = Array.from(event.results)
+    //     .map((result) => result[0].transcript)
+    //     .join("");
+    //   setTranscription(transcript);
+    // };
+    let recognitionStartTime: number | null = null;
+
+    recognition.onstart = () => {
+      recognitionStartTime = performance.now(); // Record the exact start time
     };
+
+    recognition.onresult = (event) => {
+      const results: dataScript[] = Array.from(event.results).map(
+        (result, index) => {
+          const relativeTime = performance.now() - (recognitionStartTime || 0);
+          const avgSpeechSpeed = 200; // Approximate per-word duration
+          const transcript = result[0].transcript;
+          const wordsCount = transcript.split(" ").length;
+
+          return {
+            start: Number(relativeTime), // Ensure it's explicitly a number
+            end: Number(relativeTime + wordsCount * avgSpeechSpeed),
+            text: transcript,
+          };
+        }
+      );
+
+      const fullTranscript = results.map((r) => r.text).join(" "); // ✅ Fix transcript extraction
+
+      const id = `${Date.now()}`;
+      lastIdRef.current = id;
+
+      create({
+        id,
+        text: fullTranscript,
+        scripts: results, // ✅ Store the entire array instead of a single object
+      });
+
+      console.log("Speech Recognition Results:", results);
+      setTranscription(fullTranscript);
+    };
+
     recognitionRef.current = recognition; // 새로운 인스턴스 저장
     recognition.start();
-  }, []);
+  }, [create]);
 
   const onStartRecord = useCallback(() => {
     setTime(0);
@@ -135,6 +178,8 @@ const Recorder = () => {
         console.log("transcription:", prevTranscription);
         return prevTranscription; // 상태 유지
       });
+
+      router.push(`/recording/${lastIdRef.current}/`);
     },
     [stopTimer, showToast]
   );
