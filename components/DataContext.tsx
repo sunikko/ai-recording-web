@@ -10,13 +10,13 @@ type Script = {
   start: number;
   end: number;
   text: string;
-  summary?: string;
 };
 
 export type Data = {
   id: string;
   text: string;
   scripts: Script[];
+  summary?: string;
 };
 
 type Database = { [id: string]: Data | undefined };

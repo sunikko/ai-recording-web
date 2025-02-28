@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import { formatTime } from "@/modules/Util";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
+import { TailSpin } from "react-loader-spinner";
 
 const Tab = ({
   title,
@@ -36,15 +37,6 @@ const Script = ({
 }) => {
   return (
     <div className="flex flex-col px-[16px] py-[24px]">
-      <button
-        className="relative bg-[#09CC7F] mb-[18px] flex justify-center items-center py-[13px] rounded-[6px] text-[16px] font-[700] text-[#FFFFFF]"
-        onClick={onPressSummarise}
-      >
-        Summary
-        <span className="material-icons text-white text-[24px] absolute right-[17px]">
-          east
-        </span>
-      </button>
       <div className="flex flex-col gap-[18px]">
         {scripts.map((script, index) => {
           return (
@@ -59,6 +51,20 @@ const Script = ({
           );
         })}
       </div>
+    </div>
+  );
+};
+
+const Summary = ({ text, loading }: { text?: string; loading?: boolean }) => {
+  return (
+    <div className="h-full pt-[22px] px-[20px]">
+      {loading ? (
+        <div className="flex items-center justify-center h-full w-full">
+          <TailSpin color={"#09CC7F"} width={50} height={50} />
+        </div>
+      ) : (
+        <div className="text-[15px] font-[400] text-[#1A1A1A]">{text}</div>
+      )}
     </div>
   );
 };
@@ -101,6 +107,7 @@ const Recording = () => {
     setSummarising(true);
 
     try {
+      setFocusedTab("summary");
       const response = await fetch("/api/summarise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,10 +143,23 @@ const Recording = () => {
           onClick={onPressSummaryTab}
         />
       </div>
-
+      {!summarising && data?.summary == null && (
+        <button
+          className="relative bg-[#09CC7F] mb-[18px] flex justify-center items-center py-[13px] rounded-[6px] text-[16px] font-[700] text-[#FFFFFF] mx-[16px] mt-[24px]"
+          onClick={onPressSummarise}
+        >
+          Summary
+          <span className="material-icons text-white text-[24px] absolute right-[17px]">
+            east
+          </span>
+        </button>
+      )}
       <div className="flex-1 overflow-y-scroll overscroll-none">
-        {data?.scripts != null && (
+        {focusedTab === "script" && data?.scripts != null && (
           <Script scripts={data.scripts} onPressSummarise={onPressSummarise} />
+        )}
+        {focusedTab === "summary" && (
+          <Summary text={data?.summary} loading={summarising} />
         )}
       </div>
     </div>
