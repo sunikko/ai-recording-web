@@ -67,7 +67,7 @@ const Recording = () => {
   const router = useRouter();
 
   const [data, setData] = useState<Data | null>(null);
-  const { get } = useDatabase();
+  const { get, update } = useDatabase();
 
   useEffect(() => {
     if (typeof router.query.id === "string") {
@@ -94,7 +94,7 @@ const Recording = () => {
   const onPressSummarise = useCallback(async () => {
     const text = data?.text;
 
-    if (text == null) {
+    if (text == null || typeof router.query.id != "string") {
       return;
     }
 
@@ -108,12 +108,18 @@ const Recording = () => {
       });
       const result = await response.json();
       console.log("result", result.summary);
+
+      if (result.summary != null) {
+        update({ id: router.query.id, summary: result.summary });
+      } else {
+        throw new Error("Summary is undefined.");
+      }
     } catch (error) {
       console.error(error);
     } finally {
       setSummarising(false);
     }
-  }, [data?.text]);
+  }, [data?.text, router.query.id]);
 
   return (
     <div className="h-screen bg-[#F6F6F9] flex flex-col">
