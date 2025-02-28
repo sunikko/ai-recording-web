@@ -28,7 +28,20 @@ type ScriptContextType = {
 const ScriptContext = createContext<ScriptContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [database, setDatabase] = useState<Database>({});
+  //   const [database, setDatabase] = useState<Database>({});
+  const [database, setDatabase] = useState<Database>({
+    "1721464473516": {
+      id: "1721464473516",
+      text: "GPT stands for Generative Pre-trained Transformer. It's a type of artificial intelligence (AI) model that can produce human-like text, images, and more. GPT is a key part of generative AI, which is a technology that can create content.",
+      scripts: [
+        {
+          start: 0,
+          end: 11,
+          text: "GPT stands for Generative Pre-trained Transformer.",
+        },
+      ],
+    },
+  });
 
   const create = useCallback((data: Data) => {
     setDatabase((prev) => ({
