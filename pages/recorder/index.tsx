@@ -181,10 +181,25 @@ const Recorder = () => {
 
       router.push(`/recording/${lastIdRef.current}/`);
     },
-    [stopTimer, showToast]
+    [stopTimer, showToast, router]
+  );
+
+  const hasReactNativeWebview =
+    typeof window != "undefined" && window.ReactNativeWebView != null;
+
+  const postMessageToRN = useCallback(
+    ({ type, data }: { type: string; data?: any }) => {
+      window.ReactNativeWebView?.postMessage(JSON.stringify({ type, data }));
+    },
+    []
   );
 
   const record = useCallback(() => {
+    if (hasReactNativeWebview) {
+      postMessageToRN({ type: "start-record" });
+      return;
+    }
+
     window.navigator.mediaDevices
       .getUserMedia({ audio: true, video: false })
       .then((stream) => {
@@ -211,26 +226,38 @@ const Recorder = () => {
         };
         mediaRecorder.start();
       });
-  }, [onStartRecord, onStopRecord]);
+  }, [onStartRecord, onStopRecord, hasReactNativeWebview, postMessageToRN]);
 
   const stop = useCallback(() => {
+    if (hasReactNativeWebview) {
+      postMessageToRN({ type: "stop-record" });
+      return;
+    }
     if (mediaRecorderRef.current != null) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
-  }, []);
+  }, [hasReactNativeWebview, postMessageToRN]);
 
   const pause = useCallback(() => {
+    if (hasReactNativeWebview) {
+      postMessageToRN({ type: "pause-record" });
+      return;
+    }
     if (mediaRecorderRef.current != null) {
       mediaRecorderRef.current.pause();
     }
-  }, []);
+  }, [hasReactNativeWebview, postMessageToRN]);
 
   const resume = useCallback(() => {
+    if (hasReactNativeWebview) {
+      postMessageToRN({ type: "resume-record" });
+      return;
+    }
     if (mediaRecorderRef.current != null) {
       mediaRecorderRef.current.resume();
     }
-  }, []);
+  }, [hasReactNativeWebview, postMessageToRN]);
 
   const onPressRecord = useCallback(() => {
     record();
