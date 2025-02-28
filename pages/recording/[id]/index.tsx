@@ -29,11 +29,22 @@ const Tab = ({
 
 const Script = ({
   scripts,
+  onPressSummarise,
 }: {
   scripts: { start: number; end: number; text: string }[];
+  onPressSummarise?: () => void;
 }) => {
   return (
-    <div className="px-[16px] py-[24px]">
+    <div className="flex flex-col px-[16px] py-[24px]">
+      <button
+        className="relative bg-[#09CC7F] mb-[18px] flex justify-center items-center py-[13px] rounded-[6px] text-[16px] font-[700] text-[#FFFFFF]"
+        onClick={onPressSummarise}
+      >
+        Summary
+        <span className="material-icons text-white text-[24px] absolute right-[17px]">
+          east
+        </span>
+      </button>
       <div className="flex flex-col gap-[18px]">
         {scripts.map((script, index) => {
           return (
@@ -79,8 +90,33 @@ const Recording = () => {
     setFocusedTab("summary");
   }, []);
 
+  const [summarising, setSummarising] = useState(false);
+  const onPressSummarise = useCallback(async () => {
+    const text = data?.text;
+
+    if (text == null) {
+      return;
+    }
+
+    setSummarising(true);
+
+    try {
+      const response = await fetch("/api/summarise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const result = await response.json();
+      console.log("result", result.summary);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSummarising(false);
+    }
+  }, [data?.text]);
+
   return (
-    <div className="h-screen bg-white flex flex-col">
+    <div className="h-screen bg-[#F6F6F9] flex flex-col">
       <Header title={"Voice Record"} />
       <div className="flex">
         <Tab
@@ -96,7 +132,9 @@ const Recording = () => {
       </div>
 
       <div className="flex-1 overflow-y-scroll overscroll-none">
-        {data?.scripts != null && <Script scripts={data.scripts} />}
+        {data?.scripts != null && (
+          <Script scripts={data.scripts} onPressSummarise={onPressSummarise} />
+        )}
       </div>
     </div>
   );

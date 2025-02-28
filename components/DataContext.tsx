@@ -39,6 +39,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           end: 11,
           text: "GPT stands for Generative Pre-trained Transformer.",
         },
+        {
+          start: 11,
+          end: 24,
+          text: "It's a type of artificial intelligence (AI) model that can produce human-like text, images, and more.",
+        },
+        {
+          start: 24,
+          end: 38,
+          text: "GPT is a key part of generative AI, which is a technology that can create content.",
+        },
       ],
     },
   });
