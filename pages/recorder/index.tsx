@@ -28,6 +28,8 @@ const Recorder = () => {
   const [time, setTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [transcription, setTranscription] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastIdRef = useRef<string | null>(null);
 
@@ -151,7 +153,7 @@ const Recorder = () => {
         }
       );
 
-      const fullTranscript = results.map((r) => r.text).join(" "); // ✅ Fix transcript extraction
+      const fullTranscript = results.map((r) => r.text).join(" ");
 
       const id = `${Date.now()}`;
       lastIdRef.current = id;
@@ -159,16 +161,18 @@ const Recorder = () => {
       create({
         id,
         text: fullTranscript,
-        scripts: results, // ✅ Store the entire array instead of a single object
+        scripts: results,
+        photos,
       });
 
+      // router.push('/recoding/${id}')
       // console.log("Speech Recognition Results:", results);
       setTranscription(fullTranscript);
     };
 
     recognitionRef.current = recognition; // 새로운 인스턴스 저장
     recognition.start();
-  }, [create]);
+  }, [create, photos]);
 
   const onStartRecord = useCallback(() => {
     console.log("--- onStartRecord...");
@@ -195,6 +199,7 @@ const Recorder = () => {
         console.log("transcription:", prevTranscription);
         return prevTranscription; // 상태 유지
       });
+      // router.push(`/recording/${lastIdRef.current}/`);
     },
     [stopTimer, showToast]
   );
@@ -228,6 +233,7 @@ const Recorder = () => {
         if (type === "onStartRecord") {
           console.log("calling onStartRecord");
           onStartRecord();
+          webSpeachTranscribe();
         } else if (type === "onStopRecord") {
           console.log("data", data);
           console.log("data.audio", data.audio);
@@ -246,6 +252,8 @@ const Recorder = () => {
           onPauseRecord();
         } else if (type === "OnResumeRecord") {
           onResumeRecord();
+        } else if (type === "onTakePhoto") {
+          setPhotos((prev) => prev.concat([data]));
         }
       };
       window.addEventListener("message", handleMessage);
@@ -262,6 +270,7 @@ const Recorder = () => {
     onPauseRecord,
     onResumeRecord,
     onStopRecord,
+    webSpeachTranscribe,
   ]);
   const record = useCallback(() => {
     if (hasReactNativeWebview) {
@@ -293,7 +302,7 @@ const Recorder = () => {
           if (stream) {
             stream.getAudioTracks().forEach((track) => track.stop());
           }
-          router.push(`/recording/${lastIdRef.current}/`);
+          // onGotoTranscription();
         };
         mediaRecorder.start();
       });
@@ -303,7 +312,6 @@ const Recorder = () => {
     webSpeachTranscribe,
     hasReactNativeWebview,
     postMessageToRN,
-    router,
   ]);
 
   const stop = useCallback(() => {
@@ -358,6 +366,14 @@ const Recorder = () => {
   const onPressCamera = useCallback(() => {
     postMessageToRN({ type: "open-camera" });
   }, [postMessageToRN]);
+
+  const onGotoTranscription = useCallback(() => {
+    router.push(`/recording/${lastIdRef.current}/`);
+  }, [router]);
+
+  const onGotoPhotoBox = useCallback(() => {
+    router.push(`/recording/${lastIdRef.current}/photo`);
+  }, [router]);
 
   return (
     <div className="h-screen  bg-[#F6F6F9] flex flex-col">
@@ -439,9 +455,19 @@ const Recorder = () => {
           </button>
         )}
         {audioUrl != null && (
-          <audio controls>
-            <source src={audioUrl} />
-          </audio>
+          <>
+            <audio controls>
+              <source src={audioUrl} />
+            </audio>
+            <button
+              className="mt-[16px] bg-[#09CC7F] rounded-[27px] px-[42px] py-[16px] items-center flex"
+              onClick={onGotoTranscription}
+            >
+              <span className="ml-[4px] text-[15px] text-white font-[600]">
+                Transcription
+              </span>
+            </button>
+          </>
         )}
         {toastVisible && (
           <div className="absolute bottom-[21px] flex border-[1.5px] border-[#09CC7F] w-[358px] py-[13px] px-[17px] rounded-[6px] bg-[#F9FEFF]">
