@@ -5,6 +5,23 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stream } from "stream";
 
+function base64ToBlob(base64: string, mimeType: string) {
+  const byteCharacters = atob(base64);
+  const byteArrays = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+    const slice = byteCharacters.slice(offset, offset + 512);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+
+  return new Blob(byteArrays, { type: mimeType });
+}
+
 const Recorder = () => {
   const [state, setState] = useState<"recording" | "paused" | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
@@ -160,8 +177,7 @@ const Recorder = () => {
     setTranscription("");
     startTimer();
     setState("recording");
-    webSpeachTranscribe();
-  }, [startTimer, webSpeachTranscribe]);
+  }, [startTimer]);
 
   const onStopRecord = useCallback(
     ({ url, ext }: { url: string; ext: string }) => {
@@ -179,10 +195,8 @@ const Recorder = () => {
         console.log("transcription:", prevTranscription);
         return prevTranscription; // 상태 유지
       });
-
-      router.push(`/recording/${lastIdRef.current}/`);
     },
-    [stopTimer, showToast, router]
+    [stopTimer, showToast]
   );
 
   const onPauseRecord = useCallback(() => {
@@ -214,7 +228,20 @@ const Recorder = () => {
         if (type === "onStartRecord") {
           console.log("calling onStartRecord");
           onStartRecord();
-        } else if (type === "OnStopRecord") {
+        } else if (type === "onStopRecord") {
+          console.log("data", data);
+          console.log("data.audio", data.audio);
+
+          const { mimeType, ext } = data;
+          const audio = data["audio"];
+          console.log("audio, mimeType, ext", audio, mimeType, ext);
+
+          console.log(audio?.slice(0, 100)); // Prints first 100 characters
+
+          //data is base64
+          const blob = base64ToBlob(audio, mimeType);
+          const url = URL.createObjectURL(blob);
+          onStopRecord({ url, ext });
         } else if (type === "OnPauseRecord") {
           onPauseRecord();
         } else if (type === "OnResumeRecord") {
@@ -229,7 +256,13 @@ const Recorder = () => {
         document.removeEventListener("message", handleMessage); //for android
       };
     }
-  }, [hasReactNativeWebview, onStartRecord, onPauseRecord, onResumeRecord]);
+  }, [
+    hasReactNativeWebview,
+    onStartRecord,
+    onPauseRecord,
+    onResumeRecord,
+    onStopRecord,
+  ]);
   const record = useCallback(() => {
     if (hasReactNativeWebview) {
       postMessageToRN({ type: "start-record" });
@@ -245,6 +278,7 @@ const Recorder = () => {
 
         mediaRecorder.onstart = () => {
           onStartRecord();
+          webSpeachTranscribe();
         };
         mediaRecorder.ondataavailable = (event) => {
           chunksRef.current.push(event.data);
@@ -259,10 +293,18 @@ const Recorder = () => {
           if (stream) {
             stream.getAudioTracks().forEach((track) => track.stop());
           }
+          router.push(`/recording/${lastIdRef.current}/`);
         };
         mediaRecorder.start();
       });
-  }, [onStartRecord, onStopRecord, hasReactNativeWebview, postMessageToRN]);
+  }, [
+    onStartRecord,
+    onStopRecord,
+    webSpeachTranscribe,
+    hasReactNativeWebview,
+    postMessageToRN,
+    router,
+  ]);
 
   const stop = useCallback(() => {
     if (hasReactNativeWebview) {
