@@ -355,9 +355,27 @@ const Recorder = () => {
     }
   }, [pause, resume, state, onPauseRecord, onResumeRecord]);
 
+  const onPressCamera = useCallback(() => {
+    postMessageToRN({ type: "open-camera" });
+  }, [postMessageToRN]);
+
   return (
     <div className="h-screen  bg-[#F6F6F9] flex flex-col">
-      <Header title="Recording" />
+      <Header
+        title="Recording"
+        renderRight={() => {
+          if (false && !hasReactNativeWebview) {
+            return <></>;
+          }
+          return (
+            <button className="mr-[16px]" onClick={onPressCamera}>
+              <span className="material-icons text-[#8E8E93] text-[30px]">
+                photo_camera
+              </span>
+            </button>
+          );
+        }}
+      />
       <div className="flex flex-1 flex-col items-center pt-[211px]">
         {state === "recording" ? (
           <button

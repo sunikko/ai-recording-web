@@ -126,11 +126,32 @@ const Recording = () => {
     } finally {
       setSummarising(false);
     }
-  }, [data?.text, router.query.id]);
+  }, [data?.text, router.query.id, update]);
+
+  const onPressImageButton = useCallback(() => {
+    router.push(`/recording/${router.query.id}/photo`);
+  }, [router]);
+
+  const hasReactNativeWebview =
+    typeof window != "undefined" && window.ReactNativeWebView != null;
 
   return (
     <div className="h-screen bg-[#F6F6F9] flex flex-col">
-      <Header title={"Voice Record"} />
+      <Header
+        title={"Voice Record"}
+        renderRight={() => {
+          if (false && !hasReactNativeWebview) {
+            return <></>;
+          }
+          return (
+            <button className="mr-[16px]" onClick={onPressImageButton}>
+              <span className="material-icons text-[#8E8E93] text-[30px]">
+                image
+              </span>
+            </button>
+          );
+        }}
+      />
       <div className="flex">
         <Tab
           title={"Voice Record"}
