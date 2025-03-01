@@ -81,7 +81,7 @@ const Recorder = () => {
         }
 
         const data = await transcriptionResponse.json();
-        console.log(data);
+        // console.log(data);
       } catch (error) {
         console.error("Error:", error);
         // 에러 처리
@@ -145,7 +145,7 @@ const Recorder = () => {
         scripts: results, // ✅ Store the entire array instead of a single object
       });
 
-      console.log("Speech Recognition Results:", results);
+      // console.log("Speech Recognition Results:", results);
       setTranscription(fullTranscript);
     };
 
@@ -154,6 +154,7 @@ const Recorder = () => {
   }, [create]);
 
   const onStartRecord = useCallback(() => {
+    console.log("--- onStartRecord...");
     setTime(0);
     setAudioUrl(null);
     setTranscription("");
@@ -184,6 +185,16 @@ const Recorder = () => {
     [stopTimer, showToast, router]
   );
 
+  const onPauseRecord = useCallback(() => {
+    stopTimer();
+    setState("paused");
+  }, [stopTimer]);
+
+  const onResumeRecord = useCallback(() => {
+    startTimer();
+    setState("recording");
+  }, [startTimer]);
+
   const hasReactNativeWebview =
     typeof window != "undefined" && window.ReactNativeWebView != null;
 
@@ -194,6 +205,31 @@ const Recorder = () => {
     []
   );
 
+  useEffect(() => {
+    if (hasReactNativeWebview) {
+      const handleMessage = (event: any) => {
+        console.log("handleMessage", event);
+        const { type, data } = JSON.parse(event.data);
+        console.log("type", type);
+        if (type === "onStartRecord") {
+          console.log("calling onStartRecord");
+          onStartRecord();
+        } else if (type === "OnStopRecord") {
+        } else if (type === "OnPauseRecord") {
+          onPauseRecord();
+        } else if (type === "OnResumeRecord") {
+          onResumeRecord();
+        }
+      };
+      window.addEventListener("message", handleMessage);
+      document.addEventListener("message", handleMessage); //for android
+
+      return () => {
+        window.removeEventListener("message", handleMessage);
+        document.removeEventListener("message", handleMessage); //for android
+      };
+    }
+  }, [hasReactNativeWebview, onStartRecord, onPauseRecord, onResumeRecord]);
   const record = useCallback(() => {
     if (hasReactNativeWebview) {
       postMessageToRN({ type: "start-record" });
@@ -270,14 +306,12 @@ const Recorder = () => {
   const onPressPause = useCallback(() => {
     if (state === "recording") {
       pause();
-      stopTimer();
-      setState("paused");
+      onPauseRecord();
     } else if (state === "paused") {
       resume();
-      startTimer();
-      setState("recording");
+      onResumeRecord();
     }
-  }, [pause, resume, stopTimer, startTimer, state]);
+  }, [pause, resume, state, onPauseRecord, onResumeRecord]);
 
   return (
     <div className="h-screen  bg-[#F6F6F9] flex flex-col">

@@ -55,7 +55,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     },
   });
 
-  console.log(database);
+  // console.log(database);
 
   const create = useCallback((data: Data) => {
     setDatabase((prev) => ({
