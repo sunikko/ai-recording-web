@@ -138,6 +138,8 @@ const Recorder = () => {
     };
 
     recognition.onresult = (event) => {
+      console.log("recognition.onresult", event);
+
       const results: dataScript[] = Array.from(event.results).map(
         (result, index) => {
           const relativeTime = performance.now() - (recognitionStartTime || 0);
@@ -172,6 +174,48 @@ const Recorder = () => {
 
     recognitionRef.current = recognition; // 새로운 인스턴스 저장
     recognition.start();
+  }, [create, photos]);
+
+  const recognitionStartTimeRef = useRef<number | null>(null);
+
+  const fakeTranscribe = useCallback(() => {
+    if (!recognitionStartTimeRef.current) {
+      recognitionStartTimeRef.current = performance.now(); // Set if not already
+    }
+
+    const dummySentences = [
+      "This is a sample transcription for testing purposes.",
+      "Another example of fake transcription text.",
+      "This function simulates a speech-to-text conversion.",
+      "React Native is great for building mobile applications.",
+      "You can customize this text to fit your needs.",
+    ];
+
+    const results: dataScript[] = dummySentences.map((sentence, index) => {
+      const relativeTime = performance.now() - recognitionStartTimeRef.current!;
+      const avgSpeechSpeed = 200;
+      const wordsCount = sentence.split(" ").length;
+
+      return {
+        start: Number(relativeTime + index * 1000),
+        end: Number(relativeTime + index * 1000 + wordsCount * avgSpeechSpeed),
+        text: sentence,
+      };
+    });
+
+    const fullTranscript = results.map((r) => r.text).join(" ");
+
+    const id = `${Date.now()}`;
+    lastIdRef.current = id;
+
+    create({
+      id,
+      text: fullTranscript,
+      scripts: results,
+      photos,
+    });
+
+    setTranscription(fullTranscript);
   }, [create, photos]);
 
   const onStartRecord = useCallback(() => {
@@ -368,10 +412,14 @@ const Recorder = () => {
   }, [postMessageToRN]);
 
   const onGotoTranscription = useCallback(() => {
+    console.log("url", `/recording/${lastIdRef.current}/`);
+    if (lastIdRef.current === null) fakeTranscribe();
     router.push(`/recording/${lastIdRef.current}/`);
-  }, [router]);
+  }, [router, fakeTranscribe]);
 
   const onGotoPhotoBox = useCallback(() => {
+    console.log("url", `/recording/${lastIdRef.current}/`);
+    if (lastIdRef.current === null) fakeTranscribe();
     router.push(`/recording/${lastIdRef.current}/photo`);
   }, [router]);
 
