@@ -3,6 +3,7 @@ import {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useState,
 } from "react";
 
@@ -80,6 +81,44 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   });
 
   // console.log(database);
+
+  const [loaded, setLoaded] = useState(false);
+  const hasReactNativeWebview =
+    typeof window !== "undefined" && window.ReactNativeWebView != null;
+
+  useEffect(() => {
+    if (!loaded && hasReactNativeWebview) {
+      window.ReactNativeWebView?.postMessage(
+        JSON.stringify({ type: "load-database" })
+      );
+    }
+  }, [hasReactNativeWebview, loaded]);
+
+  useEffect(() => {
+    if (loaded && hasReactNativeWebview) {
+      window.ReactNativeWebView?.postMessage(
+        JSON.stringify({ type: "save-database", data: database })
+      );
+    }
+  }, [loaded, hasReactNativeWebview, database]);
+
+  useEffect(() => {
+    if (hasReactNativeWebview) {
+      const handleMessage = (event: any) => {
+        const { type, data } = JSON.parse(event.data);
+        if (type === "onLoadDatabase") {
+          setDatabase(data);
+          setLoaded(true);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+      document.addEventListener("message", handleMessage);
+      return () => {
+        window.removeEventListener("message", handleMessage);
+        document.removeEventListener("message", handleMessage);
+      };
+    }
+  }, [hasReactNativeWebview]);
 
   const create = useCallback((data: Data) => {
     setDatabase((prev) => ({
