@@ -165,6 +165,7 @@ const Recorder = () => {
         text: fullTranscript,
         scripts: results,
         photos,
+        createdAt: Date.now(),
       });
 
       // router.push('/recoding/${id}')
@@ -213,6 +214,7 @@ const Recorder = () => {
       text: fullTranscript,
       scripts: results,
       photos,
+      createdAt: Date.now(),
     });
 
     setTranscription(fullTranscript);
