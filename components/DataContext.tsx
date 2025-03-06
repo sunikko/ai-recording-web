@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 
-type Script = {
+export type Script = {
   start: number;
   end: number;
   text: string;

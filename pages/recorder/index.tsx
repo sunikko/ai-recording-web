@@ -1,4 +1,4 @@
-import { useDatabase, dataScript } from "@/components/DataContext";
+import { useDatabase, Script } from "@/components/DataContext";
 import Header from "@/components/Header";
 import { formatTime } from "@/modules/Util";
 import { useRouter } from "next/router";
@@ -140,7 +140,7 @@ const Recorder = () => {
     recognition.onresult = (event) => {
       console.log("recognition.onresult", event);
 
-      const results: dataScript[] = Array.from(event.results).map(
+      const results: Script[] = Array.from(event.results).map(
         (result, index) => {
           const relativeTime = performance.now() - (recognitionStartTime || 0);
           const avgSpeechSpeed = 200; // Approximate per-word duration
@@ -192,7 +192,7 @@ const Recorder = () => {
       "You can customize this text to fit your needs.",
     ];
 
-    const results: dataScript[] = dummySentences.map((sentence, index) => {
+    const results: Script[] = dummySentences.map((sentence, index) => {
       const relativeTime = performance.now() - recognitionStartTimeRef.current!;
       const avgSpeechSpeed = 200;
       const wordsCount = sentence.split(" ").length;
