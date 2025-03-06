@@ -11,10 +11,7 @@ export const config = {
 };
 
 const openai = new OpenAI({
-  apiKey:
-    "" ||
-    "",
-  timeout: 60000,
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
