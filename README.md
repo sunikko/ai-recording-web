@@ -2,7 +2,8 @@
 
 Voice recording web application that captures audio and summarizes content using AI.
 
-👉 Live Demo: https://ai-recorder-web-six.vercel.app/
+👉 Live Demo: [https://ai-recorder-web-six.vercel.app/](https://ai-recording-web.vercel.app/)
+
 👉 GitHub: https://github.com/sunikko/ai-recording-web
 
 ---
