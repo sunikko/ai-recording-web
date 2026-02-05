@@ -56,7 +56,7 @@ const Home = () => {
         onClick={onClickRecord}
       >
         <span className="material-icons text-white text-[24px]">mic</span>
-        <span className=" text-white text-[12px] ml-3">녹음하기</span>
+        <span className=" text-white text-[12px] ml-3">Record</span>
       </button>
     </div>
   );
